@@ -5,14 +5,9 @@ from datetime import datetime
 Yet another logging package for Python. 
 """
 
-__all__ = ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG',
-           'Handler', 'ConsoleHandler', 'FileHandler',
-           'LogRecord', 'Logger', ]
-
-# __author__  = "Mikhail Buchnev <me@buchnev.page>"
-# __status__  = "production"
-# __version__ = "0.0.0"
-# __date__    = "01 July 2022"
+__all__ = ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'LEVEL_NAMES',
+           'critical', 'error', 'warning', 'info', 'debug',
+           'ConsoleHandler', 'FileHandler', 'Logger', 'set_default_logger']
 
 CRITICAL = 4
 ERROR = 3
@@ -122,10 +117,6 @@ class ConsoleHandler(Handler):
     def __init__(self, colors):
         Handler.__init__(self)
         self.colors = colors
-        if self.colors:
-            print(f"{self._fg_color['default'].colorize}"
-                  f"{self._bg_color['default'].colorize}",
-                  end='')
 
     def emit(self, record):
         print(self.format(record),
@@ -158,7 +149,9 @@ class ConsoleHandler(Handler):
     def timestamp(self, record):
         time = record.created.strftime('%d.%m.%y %H:%M:%S.%f')[:-3]
         if self.colors:
-            return time[:-4] \
+            return self.colored(time[:-4],
+                                self._fg_color['default'],
+                                self._bg_color['default'])\
                    + self.colored(time[-4:],
                                   FgColor(180, 180, 180),
                                   self._bg_color['default'])

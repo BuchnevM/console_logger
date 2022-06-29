@@ -4,7 +4,7 @@ setup(
     name='console_logger',
     version='0.0.0',
     packages=['console_logger'],
-    url='',
+    url='https://github.com/BuchnevM/console_logger',
     license='MIT License',
     author='Mikhail Buchnev',
     author_email='me@buchnev.page',
