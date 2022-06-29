@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='console_logger',
-    version='0.0.0',
+    version='0.0.1',
     packages=['console_logger'],
     url='https://github.com/BuchnevM/console_logger',
     license='MIT License',
