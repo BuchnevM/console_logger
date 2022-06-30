@@ -7,7 +7,7 @@ Yet another logging package for Python.
 
 __all__ = ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'LEVEL_NAMES',
            'critical', 'error', 'warning', 'info', 'debug',
-           'ConsoleHandler', 'FileHandler', 'Logger', 'set_default_logger']
+           'Logger', 'set_default_logger']
 
 CRITICAL = 4
 ERROR = 3
@@ -72,13 +72,19 @@ class LogRecord:
     """
     LogRecord is an instance representing logged event.
     """
-    def __init__(self, msg, level, traceback, carriage_return):
+    def __init__(self, msg, level, /,
+                 file, console_output, colors,
+                 traceback, carriage_return, **kwargs):
         self.created = datetime.now()
+        self.msg = msg
         self.level = level
         self.level_name = LEVEL_NAMES[level]
-        self.msg = msg
+        self.file = file
+        self.console_output = console_output
+        self.colors = colors
         self.traceback = traceback
-        self.cr = carriage_return
+        self.carriage_return = carriage_return
+        self.kwargs = kwargs
 
     def __repr__(self):
         return f"<LogRecord: {self.level_name}, \"{self.msg}\">"
@@ -87,16 +93,25 @@ class LogRecord:
 # Handlers
 
 class Handler:
+    """
+    Common base interface for handlers.
+    """
     def __init__(self):
         pass
 
     def emit(self, record):
         pass
 
+    def format(self, record):
+        pass
+
     def handle(self, record):
         self.emit(record)
 
 class ConsoleHandler(Handler):
+    """
+    This handler process colored console output.
+    """
     _fg_color = {
         'default': FgColor(255, 255, 255),
         DEBUG    : FgColor(236, 236, 236),
@@ -120,14 +135,18 @@ class ConsoleHandler(Handler):
 
     def emit(self, record):
         print(self.format(record),
-              end=(lambda r: '\r' if r else '\n')(record.cr))
+              end=(lambda r: '\r' if r else '\n')(record.carriage_return))
 
     def format(self, record):
+        if record.traceback:
+            traceback = f"\n{record.traceback}"
+        else:
+            traceback = ''
         if self.colors:
             level_name = self.colored(f"{record.level_name:^8}",
                                       self._fg_color[record.level],
                                       self._bg_color[record.level])
-            msg = self.colored(record.msg,
+            msg = self.colored(f"{record.msg}{traceback}",
                                self._fg_color[record.level],
                                self._bg_color['default'])
             return f"{self.timestamp(record)}" \
@@ -137,7 +156,8 @@ class ConsoleHandler(Handler):
         return f"{self.timestamp(record)}"\
                f" [{record.level_name:^8}] "\
                f"\033[K"\
-               f"{record.msg}"
+               f"{record.msg}" \
+               f"{traceback}"
 
     @classmethod
     def colored(cls, txt, fg, bg):
@@ -158,14 +178,21 @@ class ConsoleHandler(Handler):
         return time
 
 class FileHandler(Handler):
-    def __init__(self, filename, mode='a', encoding='utf8'):
+    """
+    FileHandler instance is used for writing logging records to text file.
+    """
+    def __init__(self, filename, /,
+                 file_opening_mode='a', file_encoding='utf8',
+                 **kwargs):
         Handler.__init__(self)
         self.filename = filename
-        self.mode = mode
-        self.encoding = encoding
+        self.file_opening_mode = file_opening_mode
+        self.file_encoding = file_encoding
 
     def emit(self, record):
-        with open(self.filename, self.mode, encoding=self.encoding) as f:
+        with open(self.filename,
+                  self.file_opening_mode,
+                  encoding=self.file_encoding) as f:
             f.write(self.format(record))
 
     def format(self, record):
@@ -187,67 +214,82 @@ class FileHandler(Handler):
 # Logger
 
 class Logger:
-
+    """
+    Main class which creates the logger instance.
+    This logger receives messages and sends it to proper handlers.
+    """
     def __init__(self, level=INFO, file=None,
-                 console_output=True, colors=True):
+                 console_output=True, colors=True, **kwargs):
         self.level = level
-        self.filename = file
+        self.file = file
         self.console_output = console_output
         self.colors = colors
         if console_output:
             self.console_handler = ConsoleHandler(colors)
         if file:
-            self.file_handler = FileHandler(file)
+            self.file_handler = FileHandler(file, **kwargs)
 
-    def debug(self, msg, traceback='', cr=False):
+    def debug(self, msg, /, **kwargs):
         if self.level <= DEBUG:
-            self._log(msg, DEBUG, traceback, cr)
+            self._log(msg, DEBUG, **kwargs)
 
-    def info(self, msg, traceback='', cr=False):
+    def info(self, msg, /, **kwargs):
         if self.level <= INFO:
-            self._log(msg, INFO, traceback, cr)
+            self._log(msg, INFO, **kwargs)
 
-    def warning(self, msg, traceback='', cr=False):
+    def warning(self, msg, /, **kwargs):
         if self.level <= WARNING:
-            self._log(msg, WARNING, traceback, cr)
+            self._log(msg, WARNING, **kwargs)
 
-    def error(self, msg, traceback='', cr=False):
+    def error(self, msg, /, **kwargs):
         if self.level <= ERROR:
-            self._log(msg, ERROR, traceback, cr)
+            self._log(msg, ERROR, **kwargs)
 
-    def critical(self, msg, traceback='', cr=False):
+    def critical(self, msg, /, **kwargs):
         if self.level <= CRITICAL:
-            self._log(msg, CRITICAL, traceback, cr)
+            self._log(msg, CRITICAL, **kwargs)
 
-    def _log(self, msg, level, traceback='', cr=False):
-        self.handle(LogRecord(msg, level, traceback, cr))
+    def _log(self, msg, level, /, **kwargs):
+        self._handle(LogRecord(msg, level,
+                               file=kwargs.get('file', self.file),
+                               console_output=kwargs.get('console_output',
+                                                         self.console_output),
+                               colors=kwargs.get('colors', self.colors),
+                               **kwargs))
 
-    def handle(self, record):
-        if self.console_output:
-            self.console_handler.handle(record)
-        if self.filename:
-            self.file_handler.handle(record)
+    def _handle(self, record):
+        if (record.file is not None) \
+                and (record.carriage_return is False):
+            try:
+                self.file_handler.handle(record)
+            except AttributeError:
+                FileHandler(record.file, **record.kwargs).handle(record)
+        if record.console_output:
+            try:
+                self.console_handler.handle(record)
+            except AttributeError:
+                ConsoleHandler(record.colors).handle(record)
 
 # ———————————————————————————————————————————————————————————————————————————— #
 # Logger functions at module level.
 
-def debug(msg, *args, **kwargs):
-    _logger.debug(msg, *args, **kwargs)
+def debug(msg, **kwargs):
+    _default_logger.debug(msg, **kwargs)
 
-def info(msg, *args, **kwargs):
-    _logger.info(msg, *args, **kwargs)
+def info(msg, **kwargs):
+    _default_logger.info(msg, **kwargs)
 
-def warning(msg, *args, **kwargs):
-    _logger.warning(msg, *args, **kwargs)
+def warning(msg, **kwargs):
+    _default_logger.warning(msg, **kwargs)
 
-def error(msg, *args, **kwargs):
-    _logger.error(msg, *args, **kwargs)
+def error(msg, **kwargs):
+    _default_logger.error(msg, **kwargs)
 
-def critical(msg, *args, **kwargs):
-    _logger.critical(msg, *args, **kwargs)
+def critical(msg, **kwargs):
+    _default_logger.critical(msg, **kwargs)
 
 # default logger instance
-_logger = Logger()
+_default_logger = Logger()
 
 def set_default_logger(logger):
     """
@@ -255,5 +297,5 @@ def set_default_logger(logger):
     :param logger: New logger instance.
     :return:
     """
-    global _logger
-    _logger = logger
+    global _default_logger
+    _default_logger = logger
