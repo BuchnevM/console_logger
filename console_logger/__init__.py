@@ -72,9 +72,9 @@ class LogRecord:
     """
     LogRecord is an instance representing logged event.
     """
-    def __init__(self, msg, level, /,
+    def __init__(self, msg, level, /, *,
                  file, console_output, colors,
-                 traceback, carriage_return, **kwargs):
+                 traceback='', carriage_return=False, **kwargs):
         self.created = datetime.now()
         self.msg = msg
         self.level = level
@@ -273,19 +273,19 @@ class Logger:
 # ———————————————————————————————————————————————————————————————————————————— #
 # Logger functions at module level.
 
-def debug(msg, **kwargs):
+def debug(msg, /, **kwargs):
     _default_logger.debug(msg, **kwargs)
 
-def info(msg, **kwargs):
+def info(msg, /, **kwargs):
     _default_logger.info(msg, **kwargs)
 
-def warning(msg, **kwargs):
+def warning(msg, /, **kwargs):
     _default_logger.warning(msg, **kwargs)
 
-def error(msg, **kwargs):
+def error(msg, /, **kwargs):
     _default_logger.error(msg, **kwargs)
 
-def critical(msg, **kwargs):
+def critical(msg, /, **kwargs):
     _default_logger.critical(msg, **kwargs)
 
 # default logger instance
