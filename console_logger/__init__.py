@@ -251,10 +251,10 @@ class Logger:
 
     def _log(self, msg, level, /, **kwargs):
         self._handle(LogRecord(msg, level,
-                               file=kwargs.get('file', self.file),
-                               console_output=kwargs.get('console_output',
+                               file=kwargs.pop('file', self.file),
+                               console_output=kwargs.pop('console_output',
                                                          self.console_output),
-                               colors=kwargs.get('colors', self.colors),
+                               colors=kwargs.pop('colors', self.colors),
                                **kwargs))
 
     def _handle(self, record):
