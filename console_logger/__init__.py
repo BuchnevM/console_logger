@@ -9,6 +9,9 @@ __all__ = ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'LEVEL_NAMES',
            'critical', 'error', 'warning', 'info', 'debug',
            'Logger', 'set_default_logger']
 
+# ———————————————————————————————————————————————————————————————————————————— #
+# Logging levels
+
 CRITICAL = 4
 ERROR = 3
 WARNING = 2
@@ -260,18 +263,19 @@ class Logger:
     def _handle(self, record):
         if (record.file is not None) \
                 and (record.carriage_return is False):
-            try:
+            if record.file == self.file:
                 self.file_handler.handle(record)
-            except AttributeError:
+            else:
                 FileHandler(record.file, **record.kwargs).handle(record)
         if record.console_output:
-            try:
+            if (record.console_output == self.console_output)\
+                    and (record.colors == self.colors):
                 self.console_handler.handle(record)
-            except AttributeError:
+            else:
                 ConsoleHandler(record.colors).handle(record)
 
 # ———————————————————————————————————————————————————————————————————————————— #
-# Logger functions at module level.
+# Logger functions at module level. Delegate everything to the default logger.
 
 def debug(msg, /, **kwargs):
     _default_logger.debug(msg, **kwargs)
