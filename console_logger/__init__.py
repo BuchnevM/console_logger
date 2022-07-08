@@ -20,10 +20,10 @@ DEBUG = 0
 
 LEVEL_NAMES = {
     CRITICAL: 'CRITICAL',
-    ERROR: 'ERROR',
-    WARNING: 'WARNING',
-    INFO: 'INFO',
-    DEBUG: 'DEBUG'
+    ERROR   : 'ERROR',
+    WARNING : 'WARNING',
+    INFO    : 'INFO',
+    DEBUG   : 'DEBUG'
 }
 
 # ———————————————————————————————————————————————————————————————————————————— #
@@ -48,7 +48,12 @@ class Color:
             raise ValueError(f"Unexpected color type '{color_type}'")
 
     def __repr__(self):
-        return f"<Color red={self.r}, green={self.g}, blue={self.b}>"
+        if self.color_type == 'fg':
+            return f"<ForegroundColor " \
+                   f"red={self.r}, green={self.g}, blue={self.b}>"
+        elif self.color_type == 'bg':
+            return f"<BackgroundColor " \
+                   f"red={self.r}, green={self.g}, blue={self.b}>"
 
     @property
     def colorize(self):
@@ -124,13 +129,14 @@ class ConsoleHandler(Handler):
         CRITICAL : FgColor(255, 100, 100)
     }
     _bg_color = {
-        'default': BgColor(0  , 0 , 0),
-        DEBUG    : BgColor(19 , 19, 19),
-        INFO     : BgColor(0  , 0 , 38),
-        WARNING  : BgColor(38 , 38, 0),
-        ERROR    : BgColor(38 , 0 , 0),
-        CRITICAL : BgColor(155, 0 , 0)
+        'default': BgColor(  0,   0,   0),
+        DEBUG    : BgColor( 19,  19,  19),
+        INFO     : BgColor(  0,   0,  38),
+        WARNING  : BgColor( 38,  38,   0),
+        ERROR    : BgColor( 38,   0,   0),
+        CRITICAL : BgColor(155,   0,   0)
     }
+    _reset_colors = '\033[0m'
 
     def __init__(self, colors):
         Handler.__init__(self)
@@ -149,6 +155,7 @@ class ConsoleHandler(Handler):
             level_name = self.colored(f"{record.level_name:^8}",
                                       self._fg_color[record.level],
                                       self._bg_color[record.level])
+            # colored message and traceback from logged record
             msg = self.colored(f"{record.msg}{traceback}",
                                self._fg_color[record.level],
                                self._bg_color['default'])
@@ -156,9 +163,9 @@ class ConsoleHandler(Handler):
                    f" [{level_name}] " \
                    f"\033[K" \
                    f"{msg}"
-        return f"{self.timestamp(record)}"\
-               f" [{record.level_name:^8}] "\
-               f"\033[K"\
+        return f"{self.timestamp(record)}" \
+               f" [{record.level_name:^8}] " \
+               f"\033[K" \
                f"{record.msg}" \
                f"{traceback}"
 
