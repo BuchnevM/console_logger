@@ -7,7 +7,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='console_logger',
-    version='0.0.6',
+    version='0.0.7',
     packages=['console_logger'],
     url='https://github.com/BuchnevM/console_logger',
     license='MIT License',
