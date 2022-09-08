@@ -52,11 +52,11 @@ class Color:
 
     def __repr__(self):
         if self.color_type == 'fg':
-            return f"<ForegroundColor " \
-                   f"red={self.r}, green={self.g}, blue={self.b}>"
+            return f"ForegroundColor(" \
+                   f"red={self.r}, green={self.g}, blue={self.b})"
         elif self.color_type == 'bg':
-            return f"<BackgroundColor " \
-                   f"red={self.r}, green={self.g}, blue={self.b}>"
+            return f"BackgroundColor(" \
+                   f"red={self.r}, green={self.g}, blue={self.b})"
 
     @property
     def colorize(self):
@@ -98,7 +98,7 @@ class LogRecord:
         self.kwargs = kwargs
 
     def __repr__(self):
-        return f"<LogRecord: {self.level_name}, \"{self.msg}\">"
+        return f"LogRecord({self.level_name}, \"{self.msg}\")"
 
 # ———————————————————————————————————————————————————————————————————————————— #
 # Handlers
@@ -270,6 +270,12 @@ class Logger:
             self.console_handler = ConsoleHandler(colors)
         if file:
             self.file_handler = FileHandler(file, **kwargs)
+
+    def __repr__(self):
+        return f"Logger(severity: {LEVEL_NAMES[self.level]}, " \
+               f"console output: {self.console_output}, " \
+               f"file output: {self.file}, " \
+               f"colors: {self.colors})"
 
     def debug(self, msg, /, **kwargs):
         if self.level <= DEBUG:
