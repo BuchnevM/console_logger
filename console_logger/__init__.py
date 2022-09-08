@@ -1,3 +1,6 @@
+import glob
+import os
+import re
 import sys
 from datetime import datetime
 
@@ -198,17 +201,33 @@ class FileHandler(Handler):
     """
     def __init__(self, filename, /,
                  file_opening_mode='a', file_encoding='utf8',
-                 **kwargs):
+                 max_file_size=10485760, max_num_files=5):
         Handler.__init__(self)
         self.filename = filename
+        *fn, ext = self.filename.split('.')
+        self.fn, self.ext = '.'.join(fn), ext
         self.file_opening_mode = file_opening_mode
         self.file_encoding = file_encoding
+        self.max_file_size = max_file_size
+        self.max_num_files = max_num_files
 
     def emit(self, record):
-        with open(self.filename,
-                  self.file_opening_mode,
-                  encoding=self.file_encoding) as f:
-            f.write(self.format(record))
+        message = self.format(record)
+        file = open(self.filename, self.file_opening_mode,
+                    encoding=self.file_encoding)
+        if file.tell() + len(message) <= self.max_file_size \
+                or self.max_file_size == 0:
+            file.write(message)
+            file.close()
+        else:
+            file.close()
+            pattern = re.compile(f"{self.fn}.\\d+.{self.ext}")
+            files = [file for file in glob.glob(f"{self.fn}.*.{self.ext}")
+                     if pattern.fullmatch(file) is not None]
+            files = sorted(files, key=lambda name: int(name.split('.')[-2]))
+            self.rotate(files)
+            with open(self.filename, 'w', encoding=self.file_encoding) as f:
+                f.write(message)
 
     def format(self, record):
         if record.traceback:
@@ -220,6 +239,16 @@ class FileHandler(Handler):
                f"{record.msg}"\
                f"{traceback}"\
                f"\n"
+
+    def rotate(self, files):
+        # files list should be sorted
+        while len(files) >= self.max_num_files \
+                and len(files) != self.max_num_files != 0:
+            os.remove(files.pop())
+        for num in map(int, (f.split('.')[-2] for f in files[::-1])):
+            os.rename(f"{self.fn}.{num}.{self.ext}",
+                      f"{self.fn}.{num + 1}.{self.ext}")
+        os.rename(self.filename, f"{self.fn}.1.{self.ext}")
 
     @staticmethod
     def timestamp(record):
