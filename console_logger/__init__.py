@@ -199,24 +199,23 @@ class FileHandler(Handler):
     """
     FileHandler instance is used for writing logging records to text file.
     """
-    def __init__(self, filename, /,
-                 file_opening_mode='a', file_encoding='utf8',
-                 max_file_size=10485760, max_num_files=5):
+    def __init__(self, filename, /, mode='a', encoding='utf8',
+                 size=10485760, num_files=5):
         Handler.__init__(self)
         self.filename = filename
-        *fn, ext = self.filename.split('.')
-        self.fn, self.ext = '.'.join(fn), ext
-        self.file_opening_mode = file_opening_mode
-        self.file_encoding = file_encoding
-        self.max_file_size = max_file_size if max_file_size >= 0 else 0
-        self.max_num_files = max_num_files if max_num_files > 0 else 1
+        *base_name, ext = self.filename.split('.')
+        self.fn, self.ext = '.'.join(base_name), ext
+        self.mode = mode
+        self.encoding = encoding
+        self.size = size if size >= 0 else 0
+        self.num_files = num_files if num_files > 0 else 1
 
     def emit(self, record):
         message = self.format(record)
-        file = open(self.filename, self.file_opening_mode,
-                    encoding=self.file_encoding)
-        if file.tell() + len(message) <= self.max_file_size \
-                or self.max_file_size == 0:
+        file = open(self.filename, self.mode,
+                    encoding=self.encoding)
+        if file.tell() + len(message) <= self.size \
+                or self.size == 0:
             file.write(message)
             file.close()
         else:
@@ -226,7 +225,7 @@ class FileHandler(Handler):
                      if pattern.fullmatch(file) is not None]
             files = sorted(files, key=lambda name: int(name.split('.')[-2]))
             self.rotate(files)
-            with open(self.filename, 'w', encoding=self.file_encoding) as f:
+            with open(self.filename, 'w', encoding=self.encoding) as f:
                 f.write(message)
 
     def format(self, record):
@@ -242,7 +241,7 @@ class FileHandler(Handler):
 
     def rotate(self, files):
         # files list should be sorted
-        while len(files) + 1 > self.max_num_files:
+        while len(files) + 1 > self.num_files:
             os.remove(files.pop())
         for num in map(int, (f.split('.')[-2] for f in files[::-1])):
             os.rename(f"{self.fn}.{num}.{self.ext}",
