@@ -208,8 +208,8 @@ class FileHandler(Handler):
         self.fn, self.ext = '.'.join(fn), ext
         self.file_opening_mode = file_opening_mode
         self.file_encoding = file_encoding
-        self.max_file_size = max_file_size
-        self.max_num_files = max_num_files
+        self.max_file_size = max_file_size if max_file_size >= 0 else 0
+        self.max_num_files = max_num_files if max_num_files > 0 else 1
 
     def emit(self, record):
         message = self.format(record)
@@ -242,8 +242,7 @@ class FileHandler(Handler):
 
     def rotate(self, files):
         # files list should be sorted
-        while len(files) >= self.max_num_files \
-                and len(files) != self.max_num_files != 0:
+        while len(files) + 1 > self.max_num_files:
             os.remove(files.pop())
         for num in map(int, (f.split('.')[-2] for f in files[::-1])):
             os.rename(f"{self.fn}.{num}.{self.ext}",
