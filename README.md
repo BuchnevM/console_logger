@@ -11,7 +11,10 @@ Log records can be output as follows:
 
 ## Supported features
 
+- easy access to logger at module level
+- logging record can be emitted with specified keywords without logger changing
 - colored output in console
+- rotating text files when the current file reaches a certain size
 
 ## Usage
 

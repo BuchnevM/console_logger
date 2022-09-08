@@ -7,7 +7,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='console_logger',
-    version='0.0.8',
+    version='0.0.9',
     packages=[
         'console_logger',
     ],
