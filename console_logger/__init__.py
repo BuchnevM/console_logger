@@ -138,13 +138,13 @@ class ConsoleHandler(Handler):
     }
     _reset_colors = '\033[0m'
 
-    def __init__(self, colors):
+    def __init__(self, colors, stream=sys.stdout):
         Handler.__init__(self)
         self.colors = colors
+        self.stream = stream
 
     def emit(self, record):
-        print(self.format(record),
-              end=(lambda r: '\r' if r else '\n')(record.carriage_return))
+        self.stream.write(self.format(record))
 
     def format(self, record):
         if record.traceback:
@@ -159,15 +159,20 @@ class ConsoleHandler(Handler):
             msg = self.colored(f"{record.msg}{traceback}",
                                self._fg_color[record.level],
                                self._bg_color['default'])
+            end_of_line = '\033[F' if record.carriage_return else ''
             return f"{self.timestamp(record)}" \
                    f" [{level_name}] " \
                    f"\033[K" \
-                   f"{msg}"
+                   f"{msg}" \
+                   f"\n{self._reset_colors}" \
+                   f"{end_of_line}"
+        end_of_line = '\r' if record.carriage_return else '\n'
         return f"{self.timestamp(record)}" \
                f" [{record.level_name:^8}] " \
                f"\033[K" \
                f"{record.msg}" \
-               f"{traceback}"
+               f"{traceback}" \
+               f"{end_of_line}"
 
     @classmethod
     def colored(cls, txt, fg, bg):
